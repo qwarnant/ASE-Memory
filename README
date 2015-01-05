@@ -1,9 +1,0 @@
-Binome : Quentin Warnant & Antoine Durigneux
-Date : 15/12/2014
-Dans ce TP, nous avons appris à poser les bases d'un Memory Management Unit pour
-accéder à une mémoire virtelle et permettre la traduction d'adresses virtuelles en
-adresses physiques.
-
-NB : Il faut noter que le programme principal ne fonctionne pas si le pointeur
-de mémoire virtuelle n'est pas alloué avec un malloc. Si on ne l'alloue pas,
-le memset génère une seg fault. Le malloc ne devrait pas être nécessaire ...

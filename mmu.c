@@ -34,6 +34,16 @@ void init_master() {
         fprintf(stderr, "Error for swap memory initialization\n");
         exit(EXIT_FAILURE);
     }
+
+    unsigned i;
+    for (i = 0; i < PM_PAGES; ++i)
+        pm_mapping[i].pm_vpage = i;
+    for (i = 0; i < VM_PAGES; ++i)
+        vm_mapping[i].vm_ppage = i % (PM_PAGES - 1);
+
+    IRQVECTOR[MMU_IRQ] = mmuhandler;
+
+
 }
 
 void mmuhandler() {
@@ -50,35 +60,12 @@ void mmuhandler() {
         exit(EXIT_FAILURE);
     }
 
-
-    if (store_to_swap(current_vpage, current_ppage) == -1) {
-        fprintf(stderr, "Store to swap fault.\n");
-        exit(EXIT_FAILURE);
-    }
-
     /* Get the current virtual page number */
     current_vpage = (vaddr >> 12) & 0xFFF;
 
     #ifdef DEBUG
     printf("current_vpage[vaddr]=%d\n", current_vpage);
     #endif
-
-    if (fetch_from_swap(current_vpage, current_ppage)) {
-        fprintf(stderr, "Fetch from swap fault.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    /* Delete the old entries */
-    tlbe.tlbe_ppage = current_ppage; /* Destroy all pages with physical page number set to 1 */
-    _out(TLB_ADD_ENTRY, *(int *) (&tlbe));
-
-    /* Add the new entry */
-    tlbe.tlbe_vpage = current_vpage;
-    tlbe.tlbe_ppage = current_ppage;
-    tlbe.tlbe_access = 0x7;
-    tlbe.tlbe_active = 1;
-
-    _out(TLB_ADD_ENTRY, *(int *) (&tlbe));
 
 
 #ifdef DEBUG
@@ -88,6 +75,10 @@ void mmuhandler() {
     /* Check if there is a current association vpage - ppage */
     if (vm_mapping[current_vpage].vm_mapped) {
 
+        /* Delete the old entries */
+        tlbe.tlbe_ppage = current_ppage; /* Destroy all pages with physical page number set to 1 */
+        _out(TLB_DEL_ENTRY, *(int *) (&tlbe));
+
 #ifdef DEBUG
         printf("current_ppage=%d\n", current_ppage);
         printf("vm_mapping[current_vpage].vm_ppage=%d", vm_mapping[current_vpage].vm_ppage);
@@ -96,7 +87,7 @@ void mmuhandler() {
         tlbe.tlbe_vpage = current_vpage;
         tlbe.tlbe_ppage = vm_mapping[current_vpage].vm_ppage;
         tlbe.tlbe_access = 0x7;
-        tlbe.tlbe_active = 1;
+        tlbe.tlbe_active = 0x1;
 
         _out(TLB_ADD_ENTRY, *(int *) (&tlbe));
     } else {
@@ -113,12 +104,12 @@ void mmuhandler() {
             exit(EXIT_FAILURE);
         }
 
-        /* Delete the old entries */
-        tlbe.tlbe_ppage = current_ppage; /* Destroy all pages with physical page number set to 1 */
-        _out(TLB_ADD_ENTRY, *(int *) (&tlbe));
-
-        pm_mapping[current_ppage].pm_mapped = 0;
         vm_mapping[pm_mapping[current_ppage].pm_vpage].vm_mapped = 0;
+
+        if (fetch_from_swap(current_vpage, current_ppage) == -1) {
+            fprintf(stderr, "Fetch from swap fault occured when the round robin algorithm was executed.\n");
+            exit(EXIT_FAILURE);
+        }
 
         /* Create a new association in the memory arrays */
         vm_mapping[current_vpage].vm_mapped = 1;
@@ -131,24 +122,21 @@ void mmuhandler() {
         printf("pm_mapping[current_ppage]=%d,vm_mapping[current_vpage]=%d\n", vm_mapping[current_vpage].vm_ppage, pm_mapping[current_ppage].pm_vpage);
 #endif
 
-
-        if (fetch_from_swap(current_vpage, current_ppage) == -1) {
-            fprintf(stderr, "Fetch from swap fault occured when the round robin algorithm was executed.\n");
-            exit(EXIT_FAILURE);
-        }
+        /* Delete the old entries */
+        tlbe.tlbe_ppage = current_ppage; /* Destroy all pages with physical page number set to 1 */
+        _out(TLB_DEL_ENTRY, *(int *) (&tlbe));
 
         /* Add a new TLB entry */
         tlbe.tlbe_vpage = current_vpage;
         tlbe.tlbe_ppage = current_ppage;
         tlbe.tlbe_access = 0x7;
-        tlbe.tlbe_active = 1;
+        tlbe.tlbe_active = 0x1;
 
 #ifdef DEBUG
         printf("current_vpage=%d,current_ppage=%d\n", current_vpage, current_ppage);
 #endif
 
         _out(TLB_ADD_ENTRY, *(int *) (&tlbe));
-
     }
 }
 

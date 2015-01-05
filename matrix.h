@@ -4,7 +4,7 @@
 /*
     Define the size of square matrix (nxn)
  */
-#define MATRIX_SIZE 64
+#define MATRIX_SIZE 400
 #define MATRIX_ADD 0
 #define MATRIX_MUL 1
 

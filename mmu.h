@@ -27,7 +27,6 @@
 #define VM_SIZE (4096 * VM_PAGES)
 
 /* Define this DEBUG constant to print all data */
-#define DEBUG
 
 /* Define the structure of the basic virtual memory mapping */
 struct vm_mapping_s {
