@@ -8,3 +8,5 @@ install_manifest.txt
 .swap_file
 mmu_manager
 oracle
+.project
+.cproject
