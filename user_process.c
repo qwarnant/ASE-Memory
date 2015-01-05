@@ -7,8 +7,8 @@
 
 extern void *virtual_memory;
 
-#define MATRIX_OP MATRIX_ADD
-/*#define MATRIX_OP MATRIX_MUL*/
+/*#define MATRIX_OP MATRIX_ADD*/
+#define MATRIX_OP MATRIX_MUL
 
 void user_process() {
 	unsigned short timestamp = (unsigned)time(NULL);
